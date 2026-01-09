@@ -33,11 +33,13 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
+  bool _isLoggedIn = false;
 
   Future<void> _handleLogin() async {
     setState(() => _isLoading = true);
     try {
       await _authService.login();
+      if (mounted) setState(() => _isLoggedIn = true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -53,10 +55,53 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() => _isLoading = true);
     try {
       await _authService.logout();
+      if (mounted) setState(() => _isLoggedIn = false);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Logout failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleFetchCredentials() async {
+    setState(() => _isLoading = true);
+    try {
+      final credentials = await _authService.fetchCredentials();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  'Access Token: ${credentials.accessToken.substring(0, 20)}...')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fetch credentials failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleHasValidCredentials() async {
+    setState(() => _isLoading = true);
+    try {
+      final hasValid = await _authService.hasValidCredentials();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Has valid credentials: $hasValid')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Check credentials failed: $e')),
         );
       }
     } finally {
@@ -86,6 +131,20 @@ class _MyHomePageState extends State<MyHomePage> {
                     onPressed: _handleLogout,
                     child: const Text('Logout'),
                   ),
+                  if (_isLoggedIn) ...[
+                    const SizedBox(height: 32),
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _handleFetchCredentials,
+                      child: const Text('Fetch Credentials'),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _handleHasValidCredentials,
+                      child: const Text('Check Has Valid Credentials'),
+                    ),
+                  ],
                 ],
               ),
       ),
